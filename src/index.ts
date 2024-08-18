@@ -17,7 +17,7 @@ function createActiveLinkBackground() {
   activeLinkBackground.style.top = '4px';
   activeLinkBackground.style.height = 'calc(100% - 8px)';
   activeLinkBackground.style.backgroundColor = '#000';
-  activeLinkBackground.style.borderRadius = '15px';
+  activeLinkBackground.style.borderRadius = '22px';
   activeLinkBackground.style.zIndex = '1';
   activeLinkBackground.style.pointerEvents = 'none';
 
