@@ -14,10 +14,10 @@ function createActiveLinkBackground() {
 
   // Set inline styles (position: absolute is crucial)
   activeLinkBackground.style.position = 'absolute';
-  activeLinkBackground.style.top = '2.5px';
-  activeLinkBackground.style.height = 'calc(100% - 5px)';
+  activeLinkBackground.style.top = '4px';
+  activeLinkBackground.style.height = 'calc(100% - 8px)';
   activeLinkBackground.style.backgroundColor = '#000';
-  activeLinkBackground.style.borderRadius = '20px';
+  activeLinkBackground.style.borderRadius = '15px';
   activeLinkBackground.style.zIndex = '1';
   activeLinkBackground.style.pointerEvents = 'none';
 
