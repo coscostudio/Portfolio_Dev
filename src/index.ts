@@ -14,8 +14,8 @@ function createActiveLinkBackground() {
 
   // Set inline styles (position: absolute is crucial)
   activeLinkBackground.style.position = 'absolute';
-  activeLinkBackground.style.top = '4px';
-  activeLinkBackground.style.height = 'calc(100% - 8px)';
+  activeLinkBackground.style.top = '3px';
+  activeLinkBackground.style.height = '30px';
   activeLinkBackground.style.backgroundColor = '#000';
   activeLinkBackground.style.borderRadius = '22px';
   activeLinkBackground.style.zIndex = '1';
@@ -65,8 +65,8 @@ function animateBackgroundToActiveLink() {
   gsap.to(activeLinkBackground, {
     left: targetX,
     width: targetWidth,
-    duration: 0.5,
-    ease: 'power2.inOut',
+    duration: 1.5,
+    ease: 'expo.inOut',
   });
 }
 
@@ -91,30 +91,6 @@ function startObservingLinkStyles() {
   });
 }
 
-// ----- Function to Initialize Video Playback ----- //
-function initializeVideoPlayback(videoContainer) {
-  const videos = videoContainer.querySelectorAll('.project-slider-video');
-
-  videos.forEach((video) => {
-    video.muted = true;
-    video.load();
-
-    // Play/pause on visibility change and fix stalled videos
-    let previousTime = 0;
-    video.addEventListener('timeupdate', () => {
-      if (document.visibilityState === 'visible' && video.paused) {
-        video.play().catch(() => {}); // Handle autoplay with muted
-      }
-
-      // Check for stalled video
-      if (video.currentTime === previousTime && !video.paused && !video.ended) {
-        video.play().catch(() => {}); // Handle potential errors
-      }
-      previousTime = video.currentTime;
-    });
-  });
-}
-
 // ----- Barba Initialization ----- //
 barba.init({
   debug: true,
@@ -133,8 +109,8 @@ barba.init({
 
         return gsap.to(data.current.container, {
           x: direction,
-          duration: 0.5,
-          ease: 'power2.inOut',
+          duration: 1.5,
+          ease: 'expo.inOut',
         });
       },
       enter(data) {
@@ -152,8 +128,8 @@ barba.init({
         // Slide the entering page in
         return gsap.to(data.next.container, {
           x: 0,
-          duration: 0.5,
-          ease: 'power2.inOut',
+          duration: 1.5,
+          ease: 'expo.inOut',
         });
       },
       beforeEnter(data) {},
@@ -165,13 +141,15 @@ barba.init({
       leave(data) {
         return gsap.to(data.current.container, {
           opacity: 0,
-          duration: 0.5,
+          duration: 0.6,
+          ease: 'expo.inOut',
         });
       },
       enter(data) {
         return gsap.from(data.next.container, {
           opacity: 0,
-          duration: 0.5,
+          duration: 0.6,
+          ease: 'expo.inOut',
         });
       },
     },
@@ -182,17 +160,14 @@ barba.init({
       namespace: 'info',
       beforeEnter({ next }) {
         animateBackgroundToActiveLink(next.container);
-      },
-      beforeLeave({ current }) {
-        current.container
-          .querySelectorAll('.project-slider-video')
-          .forEach((video) => video.pause());
+        initializeFinsweetAutoVideo();
       },
     },
     {
       namespace: 'projects',
       beforeEnter({ next }) {
         animateBackgroundToActiveLink(next.container);
+        initializeFinsweetAutoVideo();
         function createAndAppendOverlay(projectSliderDiv) {
           if (projectSliderDiv) {
             const overlayDiv = document.createElement('div');
@@ -202,7 +177,7 @@ barba.init({
             overlayDiv.style.left = '0';
             overlayDiv.style.width = '100%';
             overlayDiv.style.height = '100%';
-            overlayDiv.style.backgroundColor = '#141414';
+            overlayDiv.style.backgroundColor = '##2b2b2b';
             overlayDiv.style.zIndex = '5000';
 
             projectSliderDiv.appendChild(overlayDiv);
@@ -238,7 +213,7 @@ barba.init({
               easing: true,
               drag: 'free',
               gap: '1rem',
-              focus: 'right',
+              focus: 'left',
               arrows: false,
               pagination: false,
               autoScroll: {
@@ -251,32 +226,18 @@ barba.init({
         }
         slider1();
       },
-      beforeLeave({ current }) {
-        current.container
-          .querySelectorAll('.project-slider-video')
-          .forEach((video) => video.pause());
-      },
     },
     {
       namespace: 'archive',
       beforeEnter({ next }) {
         animateBackgroundToActiveLink(next.container);
-      },
-      beforeLeave({ current }) {
-        // Pause videos before leaving the page (if applicable to 'archive')
-        current.container
-          .querySelectorAll('.project-slider-video')
-          .forEach((video) => video.pause());
+        initializeFinsweetAutoVideo();
       },
     },
   ],
 });
 
 // --- Barba Hooks --- //
-barba.hooks.before(() => {
-  document.querySelectorAll('.project-slider-video').forEach((video) => video.pause());
-});
-
 barba.hooks.enter(() => {
   window.scrollTo(0, 0);
   const preloader = document.querySelector('.preload-container');
@@ -290,21 +251,28 @@ barba.hooks.after(async ({ next }) => {
     history.scrollRestoration = 'manual';
   }
   restartWebflow();
-  initializeVideoPlayback(next.container);
 
   // Wait for a short delay
   await new Promise((resolve) => setTimeout(resolve, 100));
 
   // Trigger animation after the delay
   animateBackgroundToActiveLink(next.container);
+  initializeFinsweetAutoVideo();
 });
 
+function initializeFinsweetAutoVideo() {
+  const autoVideoScript = document.querySelector('[src*="autovideo.js"]');
+  if (autoVideoScript) {
+    window.fsAttributes && window.fsAttributes.autoVideo?.init?.();
+  }
+}
 // DOMContentLoaded Event
 document.addEventListener('DOMContentLoaded', () => {
   createActiveLinkBackground();
-  initializeVideoPlayback(document);
   animateBackgroundToActiveLink(document);
+  initializeFinsweetAutoVideo();
 });
+
 // Add event listener for window resize
 window.addEventListener('resize', () => {
   animateBackgroundToActiveLink(document); // Recalculate and animate on resize
