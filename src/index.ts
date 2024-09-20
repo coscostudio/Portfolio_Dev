@@ -91,6 +91,63 @@ function startObservingLinkStyles() {
   });
 }
 
+// Global slider-related functions (project pages)
+function createAndAppendOverlay(projectSliderDiv) {
+  if (projectSliderDiv) {
+    const overlayDiv = document.createElement('div');
+    overlayDiv.id = 'splide-overlay';
+    overlayDiv.style.position = 'absolute';
+    overlayDiv.style.top = '0';
+    overlayDiv.style.left = '0';
+    overlayDiv.style.width = '100%';
+    overlayDiv.style.height = '100%';
+    overlayDiv.style.backgroundColor = '#2b2b2b';
+    overlayDiv.style.zIndex = '5000';
+
+    projectSliderDiv.appendChild(overlayDiv);
+
+    gsap.to(overlayDiv, {
+      opacity: 0,
+      duration: 1,
+      onComplete: () => {
+        overlayDiv.remove();
+      },
+    });
+  }
+}
+
+function destroySplide() {
+  const splides = document.querySelectorAll('.splide');
+  splides.forEach((slider) => {
+    const splideInstance = slider.splide; // Access the existing Splide instance
+    if (splideInstance) {
+      splideInstance.destroy(); // Destroy the Splide instance to free up resources
+    }
+  });
+}
+
+function slider1() {
+  const splides = document.querySelectorAll('.slider1');
+  splides.forEach((slider) => {
+    const splideInstance = new Splide(slider, {
+      type: 'loop',
+      autoWidth: true,
+      drag: 'free',
+      gap: '1rem',
+      focus: 'left',
+      arrows: false,
+      pagination: false,
+      autoScroll: {
+        autoStart: true,
+        speed: 0.1,
+        pauseOnHover: false,
+      },
+    });
+
+    splideInstance.mount(window.splide.Extensions);
+  });
+}
+
 // ----- Barba Initialization ----- //
 barba.init({
   debug: true,
@@ -101,11 +158,24 @@ barba.init({
       sync: true,
       leave(data) {
         const direction =
+          // Info to Projects/Digital/Graphic/Direction/Imaging or Info to Archive
           (data.current.namespace === 'info' &&
-            (data.next.namespace === 'projects' || data.next.namespace === 'archive')) ||
-          (data.current.namespace === 'projects' && data.next.namespace === 'archive')
-            ? '-100%'
-            : '100%';
+            (data.next.namespace === 'projects' ||
+              data.next.namespace === 'digital' ||
+              data.next.namespace === 'graphic' ||
+              data.next.namespace === 'direction' ||
+              data.next.namespace === 'imaging' ||
+              data.next.namespace === 'archive')) ||
+          // Projects/Digital/Graphic/Direction/Imaging to Archive
+          ((data.current.namespace === 'projects' ||
+            data.current.namespace === 'digital' ||
+            data.current.namespace === 'graphic' ||
+            data.current.namespace === 'direction' ||
+            data.current.namespace === 'imaging') &&
+            data.next.namespace === 'archive')
+            ? '-100%' // Slide right-to-left
+            : // Archive to Projects/Digital/Graphic/Direction/Imaging or Archive to Info: Slide left-to-right
+              '100%'; // Slide left-to-right
 
         return gsap.to(data.current.container, {
           x: direction,
@@ -115,9 +185,20 @@ barba.init({
       },
       enter(data) {
         const isFromLeft =
-          (data.current.namespace === 'projects' && data.next.namespace === 'info') ||
+          // Projects/Digital/Graphic/Direction/Imaging to Info or Archive to Projects/Digital/Graphic/Direction/Imaging or Archive to Info
           (data.current.namespace === 'archive' &&
-            (data.next.namespace === 'projects' || data.next.namespace === 'info'));
+            (data.next.namespace === 'projects' ||
+              data.next.namespace === 'digital' ||
+              data.next.namespace === 'graphic' ||
+              data.next.namespace === 'direction' ||
+              data.next.namespace === 'imaging' ||
+              data.next.namespace === 'info')) ||
+          ((data.current.namespace === 'projects' ||
+            data.current.namespace === 'digital' ||
+            data.current.namespace === 'graphic' ||
+            data.current.namespace === 'direction' ||
+            data.current.namespace === 'imaging') &&
+            data.next.namespace === 'info');
 
         // Set the initial position of the entering page *before* the animation
         gsap.set(data.next.container, { x: isFromLeft ? '-100%' : '100%' });
@@ -132,13 +213,19 @@ barba.init({
           ease: 'expo.inOut',
         });
       },
-      beforeEnter(data) {},
     },
     {
-      name: 'fade-transition', // New transition for within /projects/
-      from: { namespace: ['projects'] }, // Apply this transition when navigating from within 'projects'
-      to: { namespace: ['projects'] }, // Apply this transition when navigating to within 'projects'
+      name: 'fade-transition', // Transition for navigating between projects-related pages
+      from: { namespace: ['projects', 'digital', 'graphic', 'direction', 'imaging'] }, // From any project-related namespace
+      to: { namespace: ['projects', 'digital', 'graphic', 'direction', 'imaging'] }, // To any project-related namespace
       leave(data) {
+        // Explicitly stop and remove video elements before leaving the page
+        const videos = data.current.container.querySelectorAll('video');
+        videos.forEach((video) => {
+          video.pause();
+          video.remove(); // Completely remove the video elements to force full reinitialization
+        });
+
         return gsap.to(data.current.container, {
           opacity: 0,
           duration: 0.6,
@@ -160,78 +247,97 @@ barba.init({
       namespace: 'info',
       beforeEnter({ next }) {
         animateBackgroundToActiveLink(next.container);
-        initializeFinsweetAutoVideo();
-      },
-    },
-    {
-      namespace: 'projects',
-      beforeEnter({ next }) {
-        animateBackgroundToActiveLink(next.container);
-        initializeFinsweetAutoVideo();
-        function createAndAppendOverlay(projectSliderDiv) {
-          if (projectSliderDiv) {
-            const overlayDiv = document.createElement('div');
-            overlayDiv.id = 'splide-overlay';
-            overlayDiv.style.position = 'absolute';
-            overlayDiv.style.top = '0';
-            overlayDiv.style.left = '0';
-            overlayDiv.style.width = '100%';
-            overlayDiv.style.height = '100%';
-            overlayDiv.style.backgroundColor = '##2b2b2b';
-            overlayDiv.style.zIndex = '5000';
-
-            projectSliderDiv.appendChild(overlayDiv);
-
-            gsap.to(overlayDiv, {
-              opacity: 0,
-              duration: 1,
-              onComplete: () => {
-                overlayDiv.remove();
-              },
-            });
-          }
-        }
-
-        // Get all project_slider_div elements
-        const projectSliderDivs = next.container.querySelectorAll('#project_slider_div');
-
-        // Apply overlay and fade-in effect to each slider
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          projectSliderDivs.forEach(createAndAppendOverlay);
-        } else {
-          document.addEventListener('DOMContentLoaded', () => {
-            projectSliderDivs.forEach(createAndAppendOverlay);
-          });
-        }
-
-        function slider1() {
-          const splides = $('.slider1');
-          for (let i = 0, splideLength = splides.length; i < splideLength; i++) {
-            new Splide(splides[i], {
-              type: 'loop',
-              autoWidth: true,
-              easing: true,
-              drag: 'free',
-              gap: '1rem',
-              focus: 'left',
-              arrows: false,
-              pagination: false,
-              autoScroll: {
-                autoStart: true,
-                speed: 0.1,
-                pauseOnHover: false,
-              },
-            }).mount(window.splide.Extensions);
-          }
-        }
-        slider1();
       },
     },
     {
       namespace: 'archive',
       beforeEnter({ next }) {
         animateBackgroundToActiveLink(next.container);
-        initializeFinsweetAutoVideo();
+      },
+    },
+    {
+      namespace: 'projects',
+      beforeEnter({ next }) {
+        animateBackgroundToActiveLink(next.container);
+
+        slider1();
+
+        const videos = next.container.querySelectorAll('video');
+        videos.forEach((video) => {
+          video.load();
+          video.play();
+        });
+      },
+      beforeLeave({ current }) {
+        destroySplide();
+      },
+    },
+    {
+      namespace: 'digital',
+      beforeEnter({ next }) {
+        animateBackgroundToActiveLink(next.container);
+
+        slider1();
+
+        const videos = next.container.querySelectorAll('video');
+        videos.forEach((video) => {
+          video.load();
+          video.play();
+        });
+      },
+      beforeLeave({ current }) {
+        destroySplide();
+      },
+    },
+    {
+      namespace: 'graphic',
+      beforeEnter({ next }) {
+        animateBackgroundToActiveLink(next.container);
+
+        slider1();
+
+        const videos = next.container.querySelectorAll('video');
+        videos.forEach((video) => {
+          video.load();
+          video.play();
+        });
+      },
+      beforeLeave({ current }) {
+        destroySplide();
+      },
+    },
+    {
+      namespace: 'direction',
+      beforeEnter({ next }) {
+        animateBackgroundToActiveLink(next.container);
+
+        slider1();
+
+        const videos = next.container.querySelectorAll('video');
+        videos.forEach((video) => {
+          video.load();
+          video.play();
+        });
+      },
+      beforeLeave({ current }) {
+        destroySplide();
+      },
+    },
+    {
+      namespace: 'imaging',
+      beforeEnter({ next }) {
+        animateBackgroundToActiveLink(next.container);
+
+        slider1();
+
+        const videos = next.container.querySelectorAll('video');
+        videos.forEach((video) => {
+          video.load();
+          video.play();
+        });
+      },
+      beforeLeave({ current }) {
+        destroySplide();
       },
     },
   ],
@@ -257,20 +363,12 @@ barba.hooks.after(async ({ next }) => {
 
   // Trigger animation after the delay
   animateBackgroundToActiveLink(next.container);
-  initializeFinsweetAutoVideo();
 });
 
-function initializeFinsweetAutoVideo() {
-  const autoVideoScript = document.querySelector('[src*="autovideo.js"]');
-  if (autoVideoScript) {
-    window.fsAttributes && window.fsAttributes.autoVideo?.init?.();
-  }
-}
 // DOMContentLoaded Event
 document.addEventListener('DOMContentLoaded', () => {
   createActiveLinkBackground();
   animateBackgroundToActiveLink(document);
-  initializeFinsweetAutoVideo();
 });
 
 // Add event listener for window resize
