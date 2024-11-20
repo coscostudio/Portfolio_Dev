@@ -14,28 +14,39 @@ function createActiveLinkBackground() {
 
   // Set inline styles (position: absolute is crucial)
   activeLinkBackground.style.position = 'absolute';
-  activeLinkBackground.style.top = '3px';
+  activeLinkBackground.style.top = '4px';
   activeLinkBackground.style.height = '30px';
-  activeLinkBackground.style.backgroundColor = '#000';
-  activeLinkBackground.style.borderRadius = '22px';
+  activeLinkBackground.classList.add('active-link-overlay');
+
+  activeLinkBackground.style.borderRadius = '14px';
   activeLinkBackground.style.zIndex = '1';
   activeLinkBackground.style.pointerEvents = 'none';
 
   // Append to the navbar container
   const navbarContainer = document.querySelector('.navbar-container');
   navbarContainer.appendChild(activeLinkBackground);
-
-  // Start observing link style changes
   startObservingLinkStyles();
 }
 
-// Function to Animate the Active Button Background
+function animateNavTextColor(oldLink, newLink) {
+  // Simply add/remove classes - CSS transition will handle the animation
+  if (oldLink) {
+    oldLink.style.color = 'var(--text-dark)';
+  }
+  if (newLink) {
+    newLink.style.color = 'var(--text-active-inverse)';
+  }
+}
+
 function animateBackgroundToActiveLink() {
   const infoLink = document.querySelector('[data-page="info"]');
   const projectsLink = document.querySelector('[data-page="projects"]');
   const archiveLink = document.querySelector('[data-page="archive"]');
 
   let activeLink, targetX, targetWidth;
+
+  // Get the current active link before updating
+  const oldActiveLink = document.querySelector('.nav-button.w--current');
 
   // Check for each page and its corresponding link
   if (window.location.pathname.startsWith('/projects')) {
@@ -45,7 +56,6 @@ function animateBackgroundToActiveLink() {
   } else if (window.location.pathname === '/archive') {
     activeLink = archiveLink;
   } else {
-    // Fallback to 'w--current' if no specific match is found
     activeLink = document.querySelector('.nav-button.w--current');
   }
 
@@ -68,6 +78,9 @@ function animateBackgroundToActiveLink() {
     duration: 1.5,
     ease: 'expo.inOut',
   });
+
+  // Handle text colors
+  animateNavTextColor(oldActiveLink, activeLink);
 }
 
 // ----- Function to Start Observing Link Styles ----- //
