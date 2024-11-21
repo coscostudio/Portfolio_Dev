@@ -4,51 +4,53 @@ import { SLIDE } from '@splidejs/splide';
 import { gsap } from 'gsap';
 
 /// ----- Global Variables ----- //
-let activeLinkBackground;
+let activeLinkBackground = null;
 let observer; // MutationObserver to track style changes
 
 // Function to Create and Style the Active Button Background Element
 function createActiveLinkBackground() {
+  // Check if background already exists
+  if (activeLinkBackground) {
+    return activeLinkBackground;
+  }
+
   activeLinkBackground = document.createElement('div');
-  activeLinkBackground.classList.add('active-link-background');
+  activeLinkBackground.classList.add('active-link-background', 'active-link-overlay');
 
-  // Set inline styles (position: absolute is crucial)
-  activeLinkBackground.style.position = 'absolute';
-  activeLinkBackground.style.top = '4px';
-  activeLinkBackground.style.height = '30px';
-  activeLinkBackground.classList.add('active-link-overlay');
-
-  activeLinkBackground.style.borderRadius = '14px';
-  activeLinkBackground.style.zIndex = '1';
-  activeLinkBackground.style.pointerEvents = 'none';
+  // Set inline styles
+  Object.assign(activeLinkBackground.style, {
+    position: 'absolute',
+    top: '4px',
+    height: '30px',
+    borderRadius: '14px',
+    zIndex: '1',
+    pointerEvents: 'none',
+  });
 
   // Append to the navbar container
   const navbarContainer = document.querySelector('.navbar-container');
-  navbarContainer.appendChild(activeLinkBackground);
-  startObservingLinkStyles();
-}
+  if (navbarContainer && !navbarContainer.querySelector('.active-link-background')) {
+    navbarContainer.appendChild(activeLinkBackground);
+    startObservingLinkStyles();
+  }
 
-function animateNavTextColor(oldLink, newLink) {
-  // Simply add/remove classes - CSS transition will handle the animation
-  if (oldLink) {
-    oldLink.style.color = 'var(--text-dark)';
-  }
-  if (newLink) {
-    newLink.style.color = 'var(--text-active-inverse)';
-  }
+  return activeLinkBackground;
 }
 
 function animateBackgroundToActiveLink() {
+  // Ensure background exists
+  const background = createActiveLinkBackground();
+  if (!background) return;
+
   const infoLink = document.querySelector('[data-page="info"]');
   const projectsLink = document.querySelector('[data-page="projects"]');
   const archiveLink = document.querySelector('[data-page="archive"]');
 
-  let activeLink, targetX, targetWidth;
-
   // Get the current active link before updating
   const oldActiveLink = document.querySelector('.nav-button.w--current');
 
-  // Check for each page and its corresponding link
+  // Determine active link based on current path
+  let activeLink;
   if (window.location.pathname.startsWith('/projects')) {
     activeLink = projectsLink;
   } else if (window.location.pathname === '/info' || window.location.pathname === '/') {
@@ -59,20 +61,18 @@ function animateBackgroundToActiveLink() {
     activeLink = document.querySelector('.nav-button.w--current');
   }
 
-  // Ensure the active link and background exist
-  if (!activeLink || !activeLinkBackground) {
-    return;
-  }
+  // Exit if no active link found
+  if (!activeLink) return;
 
   const activeLinkRect = activeLink.getBoundingClientRect();
   const navbarContainerRect = document.querySelector('.navbar-container').getBoundingClientRect();
 
   // Calculate animation properties
-  targetX = activeLinkRect.left - navbarContainerRect.left;
-  targetWidth = activeLinkRect.width;
+  const targetX = activeLinkRect.left - navbarContainerRect.left;
+  const targetWidth = activeLinkRect.width;
 
   // Animate the background
-  gsap.to(activeLinkBackground, {
+  gsap.to(background, {
     left: targetX,
     width: targetWidth,
     duration: 1.5,
@@ -80,7 +80,8 @@ function animateBackgroundToActiveLink() {
   });
 
   // Handle text colors
-  animateNavTextColor(oldActiveLink, activeLink);
+  if (oldActiveLink) oldActiveLink.style.color = 'var(--text-dark)';
+  activeLink.style.color = 'var(--text-active-inverse)';
 }
 
 // ----- Function to Start Observing Link Styles ----- //
