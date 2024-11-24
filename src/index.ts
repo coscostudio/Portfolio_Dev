@@ -3,9 +3,27 @@ import { restartWebflow } from '@finsweet/ts-utils';
 import { SLIDE } from '@splidejs/splide';
 import { gsap } from 'gsap';
 
+// styles
+const styles = document.createElement('style');
+styles.textContent = `
+  .barba-container {
+    position: relative;
+    overflow-x: hidden;
+  }
+  .barba-container.is-entering,
+  .barba-container.is-leaving {
+    transform: translateX(100%);
+  }
+  .barba-container.is-entering.from-left {
+    transform: translateX(-100%);
+  }
+`;
+document.head.appendChild(styles);
+
 /// ----- Global Variables ----- //
 let activeLinkBackground = null;
 let observer; // MutationObserver to track style changes
+let isTransitioning = false; // New flag to track transition state
 
 // Function to Create and Style the Active Button Background Element
 function createActiveLinkBackground() {
@@ -135,7 +153,7 @@ function destroySplide() {
   splides.forEach((slider) => {
     const splideInstance = slider.splide; // Access the existing Splide instance
     if (splideInstance) {
-      splideInstance.destroy(); // Destroy the Splide instance to free up resources
+      splideInstance.destroy(true); // Destroy the Splide instance to free up resources
     }
   });
 }
@@ -153,7 +171,7 @@ function slider1() {
       pagination: false,
       autoScroll: {
         autoStart: true,
-        speed: 0.1,
+        speed: 0.4,
         pauseOnHover: false,
       },
     });
@@ -162,14 +180,39 @@ function slider1() {
   });
 }
 
+function handleNavClick(e) {
+  const link = e.currentTarget;
+  const isActive = link.classList.contains('w--current');
+
+  if (isTransitioning || isActive) {
+    e.preventDefault();
+    return;
+  }
+}
+
+// Add click handlers to nav links
+function setupNavClickPrevention() {
+  const navLinks = document.querySelectorAll('.nav-button');
+  navLinks.forEach((link) => {
+    link.addEventListener('click', handleNavClick);
+  });
+}
+
 // ----- Barba Initialization ----- //
 barba.init({
   debug: true,
   sync: true,
+  preventRunning: true,
   transitions: [
     {
       name: 'slide-transition',
       sync: true,
+      before() {
+        isTransitioning = true;
+      },
+      after() {
+        isTransitioning = false;
+      },
       leave(data) {
         const direction =
           // Info to Projects/Digital/Graphic/Direction/Imaging or Info to Archive
@@ -383,6 +426,7 @@ barba.hooks.after(async ({ next }) => {
 document.addEventListener('DOMContentLoaded', () => {
   createActiveLinkBackground();
   animateBackgroundToActiveLink(document);
+  setupNavClickPrevention();
 });
 
 // Add event listener for window resize
