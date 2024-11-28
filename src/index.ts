@@ -22,9 +22,9 @@ document.head.appendChild(styles);
 
 // Initialize Barba
 barba.init({
-  debug: true,
+  debug: false,
   sync: true,
-  preventRunning: true,
+  preventRunning: false,
   transitions: [slideTransition, fadeTransition],
   views: barbaViews,
 });
@@ -42,11 +42,16 @@ barba.hooks.after(async ({ next }) => {
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
   }
-  restartWebflow();
 
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  animateBackgroundToActiveLink();
-  initializeHoverEffects();
+  try {
+    if (next?.container) {
+      restartWebflow();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      animateBackgroundToActiveLink(next.container);
+    }
+  } catch (error) {
+    console.warn('Error in barba after hook:', error);
+  }
 });
 
 // Event listeners
