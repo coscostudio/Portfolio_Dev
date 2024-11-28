@@ -4,7 +4,6 @@ let activeLinkBackground: HTMLElement | null = null;
 let observer: MutationObserver;
 
 export function createActiveLinkBackground() {
-  // Check if background already exists
   if (activeLinkBackground) {
     return activeLinkBackground;
   }
@@ -12,7 +11,6 @@ export function createActiveLinkBackground() {
   activeLinkBackground = document.createElement('div');
   activeLinkBackground.classList.add('active-link-background', 'active-link-overlay');
 
-  // Set inline styles
   Object.assign(activeLinkBackground.style, {
     position: 'absolute',
     top: '4px',
@@ -22,18 +20,15 @@ export function createActiveLinkBackground() {
     pointerEvents: 'none',
   });
 
-  // Append to the navbar container
   const navbarContainer = document.querySelector('.navbar-container');
   if (navbarContainer && !navbarContainer.querySelector('.active-link-background')) {
     navbarContainer.appendChild(activeLinkBackground);
     startObservingLinkStyles();
   }
-
   return activeLinkBackground;
 }
 
 export function animateBackgroundToActiveLink() {
-  // Ensure background exists
   const background = createActiveLinkBackground();
   if (!background) return;
 
@@ -41,10 +36,8 @@ export function animateBackgroundToActiveLink() {
   const projectsLink = document.querySelector('[data-page="projects"]');
   const archiveLink = document.querySelector('[data-page="archive"]');
 
-  // Get the current active link before updating
   const oldActiveLink = document.querySelector('.nav-button.w--current');
 
-  // Determine active link based on current path
   let activeLink;
   if (window.location.pathname.startsWith('/projects')) {
     activeLink = projectsLink;
@@ -56,17 +49,14 @@ export function animateBackgroundToActiveLink() {
     activeLink = document.querySelector('.nav-button.w--current');
   }
 
-  // Exit if no active link found
   if (!activeLink) return;
 
   const activeLinkRect = activeLink.getBoundingClientRect();
   const navbarContainerRect = document.querySelector('.navbar-container').getBoundingClientRect();
 
-  // Calculate animation properties
   const targetX = activeLinkRect.left - navbarContainerRect.left;
   const targetWidth = activeLinkRect.width;
 
-  // Animate the background
   gsap.to(background, {
     left: targetX,
     width: targetWidth,
@@ -74,7 +64,6 @@ export function animateBackgroundToActiveLink() {
     ease: 'expo.inOut',
   });
 
-  // Handle text colors
   if (oldActiveLink) oldActiveLink.style.color = 'var(--text-dark)';
   activeLink.style.color = 'var(--text-active-inverse)';
 }
@@ -92,7 +81,6 @@ function startObservingLinkStyles() {
   };
 
   observer = new MutationObserver(callback);
-
   navLinks.forEach((link) => {
     observer.observe(link, config);
   });

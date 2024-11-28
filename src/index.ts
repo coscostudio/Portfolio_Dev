@@ -1,3 +1,5 @@
+import '@splidejs/splide/css';
+
 import barba from '@barba/core';
 import { restartWebflow } from '@finsweet/ts-utils';
 
@@ -19,16 +21,32 @@ import { batchGSAPAnimations, optimizeAnimatedElements } from './utils/animation
 import { globalStyles } from './utils/styles';
 import { isAboveMinViewport } from './utils/viewport';
 
+declare global {
+  interface Window {
+    splide: {
+      Extensions: {
+        AutoScroll: any;
+      };
+    };
+  }
+}
+
 // Apply global styles
 const styles = document.createElement('style');
 styles.textContent = globalStyles;
 document.head.appendChild(styles);
 
+window.splide = {
+  Extensions: {
+    AutoScroll: (window as any).splide?.Extensions?.AutoScroll,
+  },
+};
+
 // Initialize Barba
 barba.init({
-  debug: false,
+  debug: true,
   sync: true,
-  preventRunning: false,
+  preventRunning: true,
   transitions: [slideTransition, fadeTransition],
   views: barbaViews,
 });

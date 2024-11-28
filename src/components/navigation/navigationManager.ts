@@ -8,7 +8,7 @@ const projectNamespaces: ProjectNamespace[] = [
   'direction',
   'imaging',
 ];
-const hideNamespaces = ['index', 'archive', 'info'];
+const hideNamespaces = ['archive', 'info'];
 
 const TRANSITION_DURATION = 1.5;
 const TRANSITION_EASE = 'expo.inOut';
@@ -26,15 +26,10 @@ function handleProjectsNavigation(data: {
   const nav = document.querySelector('.projects-nav') as HTMLElement;
   if (!nav) return;
 
-  const isEnteringProject =
-    !projectNamespaces.includes(data.current.namespace as ProjectNamespace) &&
-    projectNamespaces.includes(data.next.namespace as ProjectNamespace);
+  const isEnteringProject = projectNamespaces.includes(data.next.namespace as ProjectNamespace);
+  const isLeavingProject = !projectNamespaces.includes(data.next.namespace as ProjectNamespace);
 
-  const isLeavingToHidden =
-    projectNamespaces.includes(data.current.namespace as ProjectNamespace) &&
-    hideNamespaces.includes(data.next.namespace);
-
-  if (hideNamespaces.includes(data.next.namespace)) {
+  if (isLeavingProject) {
     gsap.to(nav, {
       opacity: 0,
       duration: TRANSITION_DURATION,
@@ -46,53 +41,47 @@ function handleProjectsNavigation(data: {
 
   if (isEnteringProject) {
     setNavStyles(nav);
-    gsap.set(nav, { opacity: 0 });
+    gsap.set(nav, { display: 'flex', opacity: 0 });
     gsap.to(nav, {
       opacity: 1,
       duration: TRANSITION_DURATION,
       ease: TRANSITION_EASE,
     });
-  } else if (isLeavingToHidden) {
-    gsap.to(nav, {
-      opacity: 0,
-      duration: TRANSITION_DURATION,
-      ease: TRANSITION_EASE,
-      onComplete: () => gsap.set(nav, { display: 'none' }),
-    });
-  } else if (projectNamespaces.includes(data.next.namespace as ProjectNamespace)) {
-    setNavStyles(nav);
-    gsap.set(nav, { opacity: 1 });
   }
 }
 
 function handleInitialNavigation() {
   const nav = document.querySelector('.projects-nav') as HTMLElement;
-  if (!nav) return;
+  if (!nav) {
+    console.warn('Projects nav not found');
+    return;
+  }
 
-  const currentNamespace = document
-    .querySelector('[data-barba="container"]')
-    ?.getAttribute('data-barba-namespace');
+  const container = document.querySelector('[data-barba="container"]');
+  const currentNamespace = container?.getAttribute('data-barba-namespace');
 
-  if (hideNamespaces.includes(currentNamespace)) {
+  console.log('Current namespace:', currentNamespace);
+  console.log(
+    'Is project namespace:',
+    projectNamespaces.includes(currentNamespace as ProjectNamespace)
+  );
+
+  if (!projectNamespaces.includes(currentNamespace as ProjectNamespace)) {
     gsap.set(nav, { display: 'none', opacity: 0 });
     return;
   }
 
-  if (projectNamespaces.includes(currentNamespace as ProjectNamespace)) {
-    setNavStyles(nav);
-    gsap.fromTo(
-      nav,
-      { opacity: 0 },
-      {
-        opacity: 1,
-        duration: TRANSITION_DURATION,
-        ease: TRANSITION_EASE,
-        delay: 0.1,
-      }
-    );
-  } else {
-    gsap.set(nav, { display: 'none', opacity: 0 });
-  }
+  setNavStyles(nav);
+  gsap.fromTo(
+    nav,
+    { opacity: 0 },
+    {
+      opacity: 1,
+      duration: TRANSITION_DURATION,
+      ease: TRANSITION_EASE,
+      delay: 0.1,
+    }
+  );
 }
 
 export { handleInitialNavigation, handleProjectsNavigation };
