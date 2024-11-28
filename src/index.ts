@@ -7,6 +7,10 @@ import {
   createActiveLinkBackground,
 } from './components/navigation/activeLinkBackground';
 import { setupNavClickPrevention } from './components/navigation/navClickHandler';
+import {
+  handleInitialNavigation,
+  handleProjectsNavigation,
+} from './components/navigation/navigationManager';
 import { fadeTransition, slideTransition } from './components/transitions/barbaTransitions';
 import { barbaViews } from './components/transitions/barbaViews';
 import { initializeOptimizedVideoLoading } from './components/video/optimizedLoader';
@@ -30,12 +34,22 @@ barba.init({
 });
 
 // Barba hooks
-barba.hooks.enter(() => {
-  window.scrollTo(0, 0);
+barba.hooks.before(() => {
+  const currentScroll = window.scrollY;
+
+  barba.hooks.afterLeave(() => {
+    window.scrollTo(0, 0);
+  });
+
+  return () => barba.hooks.afterLeave(() => {});
+});
+
+barba.hooks.enter((data) => {
   const preloader = document.querySelector('.preload-container');
   if (preloader) {
     preloader.style.display = 'none';
   }
+  handleProjectsNavigation(data);
 });
 
 barba.hooks.after(async ({ next }) => {
@@ -61,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNavClickPrevention();
   initializeOptimizedVideoLoading(document);
   initializeHoverEffects();
+  handleInitialNavigation();
 });
 
 window.addEventListener('resize', () => {
