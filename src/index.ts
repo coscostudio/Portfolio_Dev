@@ -49,6 +49,7 @@ barba.init({
   preventRunning: true,
   transitions: [slideTransition, fadeTransition],
   views: barbaViews,
+  prefetch: true,
 });
 
 // Barba hooks

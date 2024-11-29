@@ -9,6 +9,9 @@ const sharedProjectView = {
     initializeOptimizedVideoLoading(next.container);
     slider1();
   },
+  beforeLeave() {
+    destroySplide();
+  },
 };
 
 const archiveLightboxModifier = () => {
