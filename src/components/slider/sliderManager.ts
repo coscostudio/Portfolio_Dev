@@ -1,8 +1,6 @@
 import Splide from '@splidejs/splide';
 import { gsap } from 'gsap';
 
-import { initializeVideoManagement } from '../video/videoManager';
-
 export function slider1() {
   const splides = document.querySelectorAll('.slider1');
 
@@ -57,7 +55,6 @@ export function slider1() {
     });
 
     instance.on('mounted', () => {
-      initializeVideoManagement(slider);
       const videos = slider.querySelectorAll('video');
       const images = slider.querySelectorAll('img');
 
