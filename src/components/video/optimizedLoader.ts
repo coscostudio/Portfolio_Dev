@@ -10,7 +10,6 @@ export function initializeOptimizedVideoLoading(container: Element) {
 
   const videos = container.querySelectorAll('video');
   const videoArray = Array.from(videos);
-
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   videoArray.forEach((video, index) => {
@@ -20,17 +19,23 @@ export function initializeOptimizedVideoLoading(container: Element) {
     };
 
     if (isSafari) {
-      // Safari-specific optimizations
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
-      video.preload = 'none'; // Let Safari manage loading
+      video.preload = 'none';
+      video.muted = true;
+      video.loop = true;
 
       if (video.closest('.slider1')) {
-        // For slider videos in Safari
         video.load();
         video.play().catch(() => {
           video.muted = true;
           video.play().catch(console.warn);
+        });
+        video.addEventListener('timeupdate', function () {
+          if (video.currentTime >= video.duration - 0.1) {
+            video.currentTime = 0;
+            video.play().catch(console.warn);
+          }
         });
       }
     } else {
@@ -53,7 +58,6 @@ export function loadVideoOptimized(video: HTMLVideoElement, options: VideoLoadOp
   });
 
   video.load();
-
   const parentDiv = video.parentElement;
   if (parentDiv && window.getComputedStyle(parentDiv).display !== 'none') {
     video.play().catch(() => {
@@ -61,7 +65,6 @@ export function loadVideoOptimized(video: HTMLVideoElement, options: VideoLoadOp
       video.play();
     });
   }
-
   setupVisibilityObserver(video);
 }
 
