@@ -1,12 +1,13 @@
 import { initializeHoverEffects } from '../interactions/hoverManager';
 import { animateBackgroundToActiveLink } from '../navigation/activeLinkBackground';
 import { slider1 } from '../slider/sliderManager';
-import { initializeOptimizedVideoLoading } from '../video/optimizedLoader';
+import { destroySplide, slider1 } from '../slider/sliderManager';
+import { initializeVideoManagement } from '../video/videoManager';
 
 const sharedProjectView = {
   beforeEnter({ next }: { next: { container: Element } }) {
     animateBackgroundToActiveLink();
-    initializeOptimizedVideoLoading(next.container);
+    initializeVideoManagement(next.container);
     slider1();
   },
   beforeLeave() {
