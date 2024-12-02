@@ -18,26 +18,31 @@ export function initializeOptimizedVideoLoading(container: Element) {
       priority: index < 2 ? 'high' : 'low',
     };
 
-    if (isSafari) {
-      video.setAttribute('playsinline', '');
-      video.setAttribute('webkit-playsinline', '');
-      video.preload = 'none';
-      video.muted = true;
-      video.loop = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.muted = true;
 
-      if (video.closest('.slider1')) {
-        video.load();
-        video.play().catch(() => {
-          video.muted = true;
-          video.play().catch(console.warn);
-        });
-        video.addEventListener('timeupdate', function () {
-          if (video.currentTime >= video.duration - 0.1) {
-            video.currentTime = 0;
-            video.play().catch(console.warn);
-          }
-        });
-      }
+    // Enhanced loop handling
+    if (typeof video.loop === 'boolean') {
+      video.loop = true;
+    } else {
+      video.addEventListener(
+        'ended',
+        function () {
+          this.currentTime = 0;
+          this.play().catch(console.warn);
+        },
+        false
+      );
+    }
+
+    if (isSafari && video.closest('.slider1')) {
+      video.preload = 'none';
+      video.load();
+      video.play().catch(() => {
+        video.muted = true;
+        video.play().catch(console.warn);
+      });
     } else {
       loadVideoOptimized(video, options);
     }
