@@ -10,7 +10,6 @@ export function initializeOptimizedVideoLoading(container: Element) {
 
   const videos = container.querySelectorAll('video');
   const videoArray = Array.from(videos);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   videoArray.forEach((video, index) => {
     const options = {
@@ -18,34 +17,22 @@ export function initializeOptimizedVideoLoading(container: Element) {
       priority: index < 2 ? 'high' : 'low',
     };
 
-    video.setAttribute('playsinline', '');
-    video.setAttribute('webkit-playsinline', '');
-    video.muted = true;
-
-    // Enhanced loop handling
-    if (typeof video.loop === 'boolean') {
-      video.loop = true;
-    } else {
-      video.addEventListener(
-        'ended',
-        function () {
-          this.currentTime = 0;
-          this.play().catch(console.warn);
-        },
-        false
-      );
-    }
-
-    if (isSafari && video.closest('.slider1')) {
-      video.preload = 'none';
-      video.load();
-      video.play().catch(() => {
-        video.muted = true;
-        video.play().catch(console.warn);
-      });
+    if (video.closest('.slider1')) {
+      loadSliderVideo(video);
     } else {
       loadVideoOptimized(video, options);
     }
+  });
+}
+
+function loadSliderVideo(video: HTMLVideoElement) {
+  video.muted = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.load();
+  video.play().catch(() => {
+    video.muted = true;
+    video.play();
   });
 }
 
