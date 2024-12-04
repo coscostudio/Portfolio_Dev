@@ -21,11 +21,10 @@ class VideoCacheManager {
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-5.mp4',
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-6.mp4',
   ];
-  private loadedVideos = new Set<string>();
+  private fallbackCache = new Map<string, Blob>();
 
   private constructor() {
-    // Initialize immediately but don't start loading
-    this.initializeCache();
+    this.startPreloading();
   }
 
   static getInstance(): VideoCacheManager {
@@ -35,62 +34,86 @@ class VideoCacheManager {
     return VideoCacheManager.instance;
   }
 
-  private async initializeCache(): Promise<void> {
-    // Check if browser supports the features we need
-    const supportsCache = 'caches' in window;
+  private async startPreloading(): Promise<void> {
+    if (this.isPreloading) return;
+    this.isPreloading = true;
 
-    if (supportsCache) {
+    for (const url of this.videoUrls) {
+      if (this.videoCache.has(url)) continue;
+
       try {
-        const cache = await caches.open('video-cache');
-        // Pre-warm the cache with HEAD requests
-        this.videoUrls.forEach((url) => {
-          cache.match(url).then((response) => {
-            if (!response) {
-              fetch(url, { method: 'HEAD' })
-                .then((resp) => cache.put(url, resp))
-                .catch(console.error);
-            }
-          });
+        const response = await fetch(url, {
+          mode: 'cors',
+          credentials: 'omit', // Important for CORS
+          headers: {
+            Accept: 'video/mp4,video/*',
+          },
         });
+
+        if (!response.ok) {
+          console.warn(`Preload failed for ${url}`, response.status);
+          continue;
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        this.videoCache.set(url, objectUrl);
       } catch (error) {
-        console.warn('Cache API failed, falling back to traditional loading', error);
+        console.warn(`Preload failed for ${url}`, error);
       }
     }
   }
 
-  async getVideo(url: string): Promise<string | undefined> {
-    // First check our memory cache
+  // Fallback caching mechanism
+  async cacheSingleVideo(url: string): Promise<string | undefined> {
+    // First check if we already have it cached
     if (this.videoCache.has(url)) {
       return this.videoCache.get(url);
     }
 
-    // Then check browser's Cache API
-    if ('caches' in window) {
-      try {
-        const cache = await caches.open('video-cache');
-        const response = await cache.match(url);
-        if (response) {
-          const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          this.videoCache.set(url, objectUrl);
-          return objectUrl;
-        }
-      } catch (error) {
-        console.warn('Cache retrieval failed', error);
-      }
+    // Check fallback cache
+    if (this.fallbackCache.has(url)) {
+      const blob = this.fallbackCache.get(url);
+      const objectUrl = URL.createObjectURL(blob);
+      this.videoCache.set(url, objectUrl);
+      return objectUrl;
     }
 
-    // If not in cache, load it now
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          Accept: 'video/mp4,video/*',
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`Cache failed for ${url}`, response.status);
+        return undefined;
+      }
+
       const blob = await response.blob();
+      // Store in fallback cache
+      this.fallbackCache.set(url, blob);
       const objectUrl = URL.createObjectURL(blob);
       this.videoCache.set(url, objectUrl);
       return objectUrl;
     } catch (error) {
-      console.error('Video fetch failed', error);
+      console.warn(`Cache failed for ${url}`, error);
       return undefined;
     }
+  }
+
+  async getVideo(url: string): Promise<string | undefined> {
+    // Try preloaded cache first
+    const cachedUrl = this.videoCache.get(url);
+    if (cachedUrl) {
+      return cachedUrl;
+    }
+
+    // If not in cache, try fallback caching
+    return this.cacheSingleVideo(url);
   }
 
   cleanup(): void {
@@ -98,7 +121,8 @@ class VideoCacheManager {
       URL.revokeObjectURL(objectUrl);
     });
     this.videoCache.clear();
-    this.loadedVideos.clear();
+    this.fallbackCache.clear();
+    this.isPreloading = false;
   }
 }
 

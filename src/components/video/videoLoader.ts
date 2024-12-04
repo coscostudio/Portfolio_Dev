@@ -1,27 +1,15 @@
 import { videoCacheManager } from './cacheManager';
 
-interface VideoLoadOptions {
-  quality: 'high' | 'low';
-  priority: 'high' | 'low';
-}
-
 export function initializeVideo(container: Element) {
   const videos = container.querySelectorAll('video');
   const videoArray = Array.from(videos);
 
-  videoArray.forEach(async (video, index) => {
-    // Added async here
-    const options = {
-      quality: 'high',
-      priority: index < 2 ? 'high' : 'low',
-    };
-
+  videoArray.forEach((video) => {
     setupVideoAttributes(video);
-
     if (video.closest('.slider1')) {
-      await setupSliderVideo(video); // Added async/await
+      setupSliderVideo(video);
     } else {
-      await setupStandardVideo(video, options); // Added async/await
+      setupStandardVideo(video);
     }
   });
 }
@@ -34,9 +22,8 @@ function setupVideoAttributes(video: HTMLVideoElement) {
   video.setAttribute('webkit-playsinline', '');
 }
 
-async function setupSliderVideo(video: HTMLVideoElement) {
-  // Made async
-  await updateVideoSources(video); // Added this function call
+function setupSliderVideo(video: HTMLVideoElement) {
+  handleVideoSources(video);
   video.load();
   video.play().catch(() => {
     video.muted = true;
@@ -44,52 +31,57 @@ async function setupSliderVideo(video: HTMLVideoElement) {
   });
 }
 
-async function setupStandardVideo(video: HTMLVideoElement, options: VideoLoadOptions) {
-  // Made async
+function setupStandardVideo(video: HTMLVideoElement) {
   video.preload = 'auto';
-  await updateVideoSources(video); // Added this function call
+  handleVideoSources(video);
   video.load();
   setupVideoPlayback(video);
 }
 
-// New helper function
-async function updateVideoSources(video: HTMLVideoElement) {
+// New function to handle video sources with fallback
+async function handleVideoSources(video: HTMLVideoElement) {
   const sources = video.querySelectorAll('source');
-  for (const source of sources) {
-    // Changed to for...of for async
+  sources.forEach(async (source) => {
     const originalSrc = source.getAttribute('src');
-    if (!originalSrc) continue;
+    if (!originalSrc) return;
 
     try {
-      const cachedSrc = await videoCacheManager.getVideo(originalSrc); // Now awaits the result
+      const cachedSrc = await videoCacheManager.getVideo(originalSrc);
       if (cachedSrc) {
         source.setAttribute('src', cachedSrc);
+        video.load(); // Reload video with new source
       }
     } catch (error) {
-      console.warn('Failed to get cached video', error);
+      console.warn('Failed to get cached video, using original source', error);
     }
-  }
+  });
+
+  // Add load event listener to cache the video if it loads successfully
+  video.addEventListener('loadeddata', () => {
+    const source = video.querySelector('source');
+    const originalSrc = source?.getAttribute('src');
+    if (originalSrc && !originalSrc.startsWith('blob:')) {
+      videoCacheManager.cacheSingleVideo(originalSrc);
+    }
+  });
 }
 
 function setupVideoPlayback(video: HTMLVideoElement) {
   const parentDiv = video.parentElement;
   if (!parentDiv) return;
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          video.play().catch(() => {
-            video.muted = true;
-            video.play();
-          });
-        } else {
-          video.pause();
-        }
-      });
-    },
-    { threshold: 0.1 }
-  ); // Added lower threshold for better detection
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        video.play().catch(() => {
+          video.muted = true;
+          video.play();
+        });
+      } else {
+        video.pause();
+      }
+    });
+  });
 
   observer.observe(parentDiv);
 }
