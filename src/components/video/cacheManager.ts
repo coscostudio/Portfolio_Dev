@@ -21,9 +21,11 @@ class VideoCacheManager {
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-5.mp4',
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-6.mp4',
   ];
+  private loadedVideos = new Set<string>();
 
   private constructor() {
-    this.startPreloading();
+    // Initialize immediately but don't start loading
+    this.initializeCache();
   }
 
   static getInstance(): VideoCacheManager {
@@ -33,58 +35,62 @@ class VideoCacheManager {
     return VideoCacheManager.instance;
   }
 
-  private async startPreloading(): Promise<void> {
-    if (this.isPreloading) return;
-    this.isPreloading = true;
+  private async initializeCache(): Promise<void> {
+    // Check if browser supports the features we need
+    const supportsCache = 'caches' in window;
 
-    const currentNamespace = document
-      .querySelector('[data-barba="container"]')
-      ?.getAttribute('data-barba-namespace');
-    const isProjectPage = ['projects', 'digital', 'graphic', 'direction', 'imaging'].includes(
-      currentNamespace || ''
-    );
-
-    // If on project page, preload with high priority
-    if (isProjectPage) {
-      await this.preloadVideos(true);
-    } else {
-      // On other pages, preload after initial page load
-      requestIdleCallback(() => {
-        this.preloadVideos(false);
-      });
-    }
-  }
-
-  private async preloadVideos(highPriority: boolean): Promise<void> {
-    for (const url of this.videoUrls) {
-      if (this.videoCache.has(url)) continue;
-
+    if (supportsCache) {
       try {
-        const response = await fetch(url, {
-          priority: highPriority ? 'high' : 'low',
-          mode: 'cors', // Add this line
-          credentials: 'same-origin', // Add this line
-          headers: {
-            Accept: 'video/mp4',
-          },
+        const cache = await caches.open('video-cache');
+        // Pre-warm the cache with HEAD requests
+        this.videoUrls.forEach((url) => {
+          cache.match(url).then((response) => {
+            if (!response) {
+              fetch(url, { method: 'HEAD' })
+                .then((resp) => cache.put(url, resp))
+                .catch(console.error);
+            }
+          });
         });
-
-        if (!response.ok) {
-          console.warn(`Failed to load video: ${url} - Status: ${response.status}`);
-          continue;
-        }
-
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        this.videoCache.set(url, objectUrl);
       } catch (error) {
-        console.error(`Failed to preload video: ${url}`, error);
+        console.warn('Cache API failed, falling back to traditional loading', error);
       }
     }
   }
 
-  getVideo(url: string): string | undefined {
-    return this.videoCache.get(url);
+  async getVideo(url: string): Promise<string | undefined> {
+    // First check our memory cache
+    if (this.videoCache.has(url)) {
+      return this.videoCache.get(url);
+    }
+
+    // Then check browser's Cache API
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open('video-cache');
+        const response = await cache.match(url);
+        if (response) {
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          this.videoCache.set(url, objectUrl);
+          return objectUrl;
+        }
+      } catch (error) {
+        console.warn('Cache retrieval failed', error);
+      }
+    }
+
+    // If not in cache, load it now
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      this.videoCache.set(url, objectUrl);
+      return objectUrl;
+    } catch (error) {
+      console.error('Video fetch failed', error);
+      return undefined;
+    }
   }
 
   cleanup(): void {
@@ -92,22 +98,8 @@ class VideoCacheManager {
       URL.revokeObjectURL(objectUrl);
     });
     this.videoCache.clear();
-    this.isPreloading = false;
+    this.loadedVideos.clear();
   }
 }
 
 export const videoCacheManager = VideoCacheManager.getInstance();
-
-export function updateVideoSources(container: Element): void {
-  const videos = container.querySelectorAll('video source');
-  videos.forEach((source) => {
-    const originalSrc = source.getAttribute('src');
-    if (originalSrc) {
-      const cachedSrc = videoCacheManager.getVideo(originalSrc);
-      if (cachedSrc) {
-        source.setAttribute('src', cachedSrc);
-        (source.parentElement as HTMLVideoElement)?.load();
-      }
-    }
-  });
-}
