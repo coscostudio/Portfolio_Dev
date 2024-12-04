@@ -15,8 +15,8 @@ import {
 } from './components/navigation/navigationManager';
 import { fadeTransition, slideTransition } from './components/transitions/barbaTransitions';
 import { barbaViews } from './components/transitions/barbaViews';
-import { initializeOptimizedVideoLoading } from './components/video/optimizedLoader';
-import { handleVideoLoad } from './components/video/videoLoader';
+import { videoCacheManager } from './components/video/cacheManager';
+import { initializeVideo } from './components/video/videoLoader';
 import { batchGSAPAnimations, optimizeAnimatedElements } from './utils/animationOptimizer';
 import { globalStyles } from './utils/styles';
 import { isAboveMinViewport } from './utils/viewport';
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   createActiveLinkBackground();
   animateBackgroundToActiveLink();
   setupNavClickPrevention();
-  initializeOptimizedVideoLoading(document);
+  initializeVideo(document);
   initializeHoverEffects();
   handleInitialNavigation();
 });
@@ -100,6 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('resize', () => {
   animateBackgroundToActiveLink();
   if (isAboveMinViewport()) {
-    handleVideoLoad(document);
+    initializeVideo(document);
   }
+});
+
+window.addEventListener('unload', () => {
+  videoCacheManager.cleanup();
 });
