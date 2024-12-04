@@ -1,4 +1,4 @@
-class VideoCacheManager {
+export class VideoCacheManager {
   private static instance: VideoCacheManager;
   private videoCache: Map<string, string> = new Map();
   private videoElements: Map<string, HTMLVideoElement> = new Map();
@@ -24,12 +24,18 @@ class VideoCacheManager {
   ];
 
   private constructor() {
-    // Create hidden video elements for Safari preloading
     if (this.isSafari()) {
       this.preloadWithVideoElements();
     } else {
       this.preloadWithFetch();
     }
+  }
+
+  public static getInstance(): VideoCacheManager {
+    if (!VideoCacheManager.instance) {
+      VideoCacheManager.instance = new VideoCacheManager();
+    }
+    return VideoCacheManager.instance;
   }
 
   private isSafari(): boolean {
