@@ -5,30 +5,17 @@ export function initializeVideo(container: Element) {
   const videoArray = Array.from(videos);
 
   videoArray.forEach(async (video) => {
-    // Check if video is already set up
-    if (video.dataset.initialized) {
+    // Skip if already initialized
+    if (video.dataset.initialized === 'true') {
       return;
     }
 
     setupVideoAttributes(video);
-
-    // Handle sources
-    const sources = video.querySelectorAll('source');
-    for (const source of sources) {
-      const originalSrc = source.getAttribute('src');
-      if (!originalSrc) continue;
-
-      const cachedSrc = await videoCacheManager.getVideo(originalSrc);
-      if (cachedSrc) {
-        source.setAttribute('src', cachedSrc);
-      }
-    }
+    await updateVideoSources(video);
 
     // Mark as initialized
     video.dataset.initialized = 'true';
-    video.load();
 
-    // Set up playback control
     if (video.closest('.slider1')) {
       setupSliderVideo(video);
     } else {
@@ -41,7 +28,21 @@ function setupVideoAttributes(video: HTMLVideoElement) {
   video.muted = true;
   video.loop = true;
   video.playsInline = true;
-  // Remove webkit-playsinline as it's not needed with standard playsinline
+  video.setAttribute('playsinline', '');
+}
+
+async function updateVideoSources(video: HTMLVideoElement) {
+  const sources = video.querySelectorAll('source');
+  for (const source of sources) {
+    const originalSrc = source.getAttribute('src');
+    if (!originalSrc) continue;
+
+    const cachedSrc = await videoCacheManager.getVideo(originalSrc);
+    if (cachedSrc) {
+      source.setAttribute('src', cachedSrc);
+    }
+  }
+  video.load();
 }
 
 function setupSliderVideo(video: HTMLVideoElement) {
@@ -59,18 +60,21 @@ function setupVideoPlayback(video: HTMLVideoElement) {
   const parentDiv = video.parentElement;
   if (!parentDiv) return;
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting && video.paused) {
-        video.play().catch(() => {
-          video.muted = true;
-          video.play();
-        });
-      } else if (!entry.isIntersecting && !video.paused) {
-        video.pause();
-      }
-    });
-  });
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && video.paused) {
+          video.play().catch(() => {
+            video.muted = true;
+            video.play();
+          });
+        } else if (!entry.isIntersecting && !video.paused) {
+          video.pause();
+        }
+      });
+    },
+    { threshold: 0.1 }
+  );
 
   observer.observe(parentDiv);
 }
