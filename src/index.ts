@@ -19,6 +19,7 @@ import { videoCacheManager } from './components/video/cacheManager';
 import { initializeVideo } from './components/video/videoLoader';
 import { batchGSAPAnimations, optimizeAnimatedElements } from './utils/animationOptimizer';
 import { globalStyles } from './utils/styles';
+import { isAboveMinViewport } from './utils/viewport';
 
 declare global {
   interface Window {
@@ -98,6 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('resize', () => {
   animateBackgroundToActiveLink();
+  if (isAboveMinViewport()) {
+    initializeVideo(document);
+  }
 });
 
 window.addEventListener('unload', () => {
