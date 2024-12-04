@@ -4,8 +4,31 @@ export function initializeVideo(container: Element) {
   const videos = container.querySelectorAll('video');
   const videoArray = Array.from(videos);
 
-  videoArray.forEach((video) => {
+  videoArray.forEach(async (video) => {
+    // Check if video is already set up
+    if (video.dataset.initialized) {
+      return;
+    }
+
     setupVideoAttributes(video);
+
+    // Handle sources
+    const sources = video.querySelectorAll('source');
+    for (const source of sources) {
+      const originalSrc = source.getAttribute('src');
+      if (!originalSrc) continue;
+
+      const cachedSrc = await videoCacheManager.getVideo(originalSrc);
+      if (cachedSrc) {
+        source.setAttribute('src', cachedSrc);
+      }
+    }
+
+    // Mark as initialized
+    video.dataset.initialized = 'true';
+    video.load();
+
+    // Set up playback control
     if (video.closest('.slider1')) {
       setupSliderVideo(video);
     } else {
@@ -18,13 +41,10 @@ function setupVideoAttributes(video: HTMLVideoElement) {
   video.muted = true;
   video.loop = true;
   video.playsInline = true;
-  video.setAttribute('playsinline', '');
-  video.setAttribute('webkit-playsinline', '');
+  // Remove webkit-playsinline as it's not needed with standard playsinline
 }
 
 function setupSliderVideo(video: HTMLVideoElement) {
-  handleVideoSources(video);
-  video.load();
   video.play().catch(() => {
     video.muted = true;
     video.play();
@@ -32,38 +52,7 @@ function setupSliderVideo(video: HTMLVideoElement) {
 }
 
 function setupStandardVideo(video: HTMLVideoElement) {
-  video.preload = 'auto';
-  handleVideoSources(video);
-  video.load();
   setupVideoPlayback(video);
-}
-
-// New function to handle video sources with fallback
-async function handleVideoSources(video: HTMLVideoElement) {
-  const sources = video.querySelectorAll('source');
-  sources.forEach(async (source) => {
-    const originalSrc = source.getAttribute('src');
-    if (!originalSrc) return;
-
-    try {
-      const cachedSrc = await videoCacheManager.getVideo(originalSrc);
-      if (cachedSrc) {
-        source.setAttribute('src', cachedSrc);
-        video.load(); // Reload video with new source
-      }
-    } catch (error) {
-      console.warn('Failed to get cached video, using original source', error);
-    }
-  });
-
-  // Add load event listener to cache the video if it loads successfully
-  video.addEventListener('loadeddata', () => {
-    const source = video.querySelector('source');
-    const originalSrc = source?.getAttribute('src');
-    if (originalSrc && !originalSrc.startsWith('blob:')) {
-      videoCacheManager.cacheSingleVideo(originalSrc);
-    }
-  });
 }
 
 function setupVideoPlayback(video: HTMLVideoElement) {
@@ -72,12 +61,12 @@ function setupVideoPlayback(video: HTMLVideoElement) {
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-      if (entry.isIntersecting) {
+      if (entry.isIntersecting && video.paused) {
         video.play().catch(() => {
           video.muted = true;
           video.play();
         });
-      } else {
+      } else if (!entry.isIntersecting && !video.paused) {
         video.pause();
       }
     });
