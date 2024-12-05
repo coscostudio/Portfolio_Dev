@@ -1,8 +1,6 @@
 class VideoCacheManager {
   private static instance: VideoCacheManager;
   private videoCache: Map<string, string> = new Map();
-  private isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  private videoElements: Map<string, HTMLVideoElement> = new Map(); // For Safari only
   private videoUrls = [
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-1.mp4',
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-2.mp4',
@@ -33,71 +31,32 @@ class VideoCacheManager {
   }
 
   async getVideo(url: string): Promise<string | undefined> {
-    // Check existing cache first
     if (this.videoCache.has(url)) {
       return this.videoCache.get(url);
     }
 
     try {
-      if (this.isSafari) {
-        return this.getSafariVideo(url);
-      }
+      const request = new Request(url, {
+        headers: {
+          Accept: 'video/mp4,video/*',
+          'Cache-Control': 'max-age=31536000',
+        },
+      });
 
-      return this.getStandardVideo(url);
+      const response = await fetch(request);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      this.videoCache.set(url, objectUrl);
+      return objectUrl;
     } catch (error) {
       console.warn(`Video fetch failed: ${url}`, error);
       return undefined;
     }
   }
 
-  private async getStandardVideo(url: string): Promise<string | undefined> {
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'video/mp4,video/*',
-        'Cache-Control': 'max-age=31536000',
-      },
-    });
-
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    this.videoCache.set(url, objectUrl);
-    return objectUrl;
-  }
-
-  private async getSafariVideo(url: string): Promise<string | undefined> {
-    // Check for existing video element
-    if (this.videoElements.has(url)) {
-      return url; // Return original URL for Safari
-    }
-
-    // Create persistent video element
-    const video = document.createElement('video');
-    video.style.display = 'none';
-    video.preload = 'auto';
-    video.playsInline = true;
-    video.crossOrigin = 'anonymous';
-
-    const source = document.createElement('source');
-    source.src = url;
-    source.type = 'video/mp4';
-
-    video.appendChild(source);
-    document.body.appendChild(video);
-
-    // Store video element
-    this.videoElements.set(url, video);
-
-    // Return original URL for Safari
-    return url;
-  }
-
   cleanup(): void {
-    if (this.isSafari) {
-      this.videoElements.forEach((video) => {
-        video.remove();
-      });
-      this.videoElements.clear();
-    } else {
+    // Only cleanup on actual page unload, not navigation
+    if (document.visibilityState === 'hidden') {
       this.videoCache.forEach((objectUrl) => {
         URL.revokeObjectURL(objectUrl);
       });
