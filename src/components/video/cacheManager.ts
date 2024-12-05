@@ -1,15 +1,29 @@
 class VideoCacheManager {
   private static instance: VideoCacheManager;
-  private videoCache: Map<string, ArrayBuffer> = new Map();
+  private videoCache: Map<string, string> = new Map();
   private isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   private videoUrls = [
-    /* your video URLs */
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-1.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-2.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-4.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-5.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-6.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-7.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_ss/optimized/ss-5.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_ss/optimized/ss-2.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_ss/optimized/ss-3.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_ss/optimized/ss-6.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_ss/optimized/ss-1.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-1.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-2.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-3.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-4.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-5.mp4',
+    'https://coscoportfolio.s3.us-east-2.amazonaws.com/hauslabel_gilly/optimized/gilly-6.mp4',
   ];
 
   private constructor() {
-    if (this.isSafari) {
-      this.preloadVideos();
-    }
+    this.startPreloading();
   }
 
   static getInstance(): VideoCacheManager {
@@ -19,94 +33,56 @@ class VideoCacheManager {
     return VideoCacheManager.instance;
   }
 
-  private async preloadVideos() {
-    for (const url of this.videoUrls) {
-      try {
-        const response = await fetch(url);
-        const buffer = await response.arrayBuffer();
-        this.videoCache.set(url, buffer);
-      } catch (error) {
-        console.warn(`Failed to preload video: ${url}`, error);
-      }
-    }
-  }
-
-  async getVideo(url: string): Promise<string | Response | undefined> {
+  private async startPreloading() {
     if (this.isSafari) {
-      return this.handleSafariVideo(url);
-    }
-
-    // Chrome handling remains the same
-    if (this.videoCache.has(url)) {
-      const buffer = this.videoCache.get(url);
-      const blob = new Blob([buffer!], { type: 'video/mp4' });
-      return URL.createObjectURL(blob);
-    }
-
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    } catch (error) {
-      console.warn(`Video fetch failed: ${url}`, error);
-      return undefined;
-    }
-  }
-
-  private async handleSafariVideo(url: string): Promise<Response | undefined> {
-    const buffer = await this.getCachedBuffer(url);
-    if (!buffer) return undefined;
-
-    // Handle Safari's range request
-    const rangeHeader = new Headers().get('range');
-    if (rangeHeader) {
-      const bytes = /^bytes=(\d+)-(\d+)?$/g.exec(rangeHeader);
-      if (bytes) {
-        const start = Number(bytes[1]);
-        const end = bytes[2] ? Number(bytes[2]) : buffer.byteLength - 1;
-
-        return new Response(buffer.slice(start, end + 1), {
-          status: 206,
-          statusText: 'Partial Content',
-          headers: {
-            'Content-Range': `bytes ${start}-${end}/${buffer.byteLength}`,
-            'Accept-Ranges': 'bytes',
-            'Content-Type': 'video/mp4',
-            'Content-Length': String(end - start + 1),
-          },
-        });
+      // For Safari, use link preload
+      this.videoUrls.forEach((url) => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'video';
+        link.href = url;
+        document.head.appendChild(link);
+      });
+    } else {
+      // For Chrome, fetch and cache
+      const batchSize = 3;
+      for (let i = 0; i < this.videoUrls.length; i += batchSize) {
+        const batch = this.videoUrls.slice(i, i + batchSize);
+        await Promise.all(batch.map((url) => this.getVideo(url)));
       }
     }
-
-    // Return full response if no range request
-    return new Response(buffer, {
-      status: 200,
-      headers: {
-        'Accept-Ranges': 'bytes',
-        'Content-Type': 'video/mp4',
-        'Content-Length': String(buffer.byteLength),
-      },
-    });
   }
 
-  private async getCachedBuffer(url: string): Promise<ArrayBuffer | undefined> {
+  async getVideo(url: string): Promise<string | undefined> {
+    // Skip caching entirely for Safari
+    if (this.isSafari) {
+      return url;
+    }
+
+    // Use existing caching system for Chrome
     if (this.videoCache.has(url)) {
       return this.videoCache.get(url);
     }
 
     try {
       const response = await fetch(url);
-      const buffer = await response.arrayBuffer();
-      this.videoCache.set(url, buffer);
-      return buffer;
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      this.videoCache.set(url, objectUrl);
+      return objectUrl;
     } catch (error) {
-      console.warn(`Failed to fetch video: ${url}`, error);
+      console.warn(`Video fetch failed: ${url}`, error);
       return undefined;
     }
   }
 
   cleanup(): void {
-    this.videoCache.clear();
+    if (!this.isSafari) {
+      this.videoCache.forEach((objectUrl) => {
+        URL.revokeObjectURL(objectUrl);
+      });
+      this.videoCache.clear();
+    }
   }
 }
 
