@@ -1,6 +1,7 @@
 class VideoCacheManager {
   private static instance: VideoCacheManager;
   private videoCache: Map<string, string> = new Map();
+  private isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   private videoUrls = [
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-1.mp4',
     'https://coscoportfolio.s3.us-east-2.amazonaws.com/summit/js-2.mp4',
@@ -31,19 +32,18 @@ class VideoCacheManager {
   }
 
   async getVideo(url: string): Promise<string | undefined> {
+    // For Safari, just return the original URL
+    if (this.isSafari) {
+      return url;
+    }
+
+    // For other browsers, use caching
     if (this.videoCache.has(url)) {
       return this.videoCache.get(url);
     }
 
     try {
-      const request = new Request(url, {
-        headers: {
-          Accept: 'video/mp4,video/*',
-          'Cache-Control': 'max-age=31536000',
-        },
-      });
-
-      const response = await fetch(request);
+      const response = await fetch(url);
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       this.videoCache.set(url, objectUrl);
@@ -55,8 +55,7 @@ class VideoCacheManager {
   }
 
   cleanup(): void {
-    // Only cleanup on actual page unload, not navigation
-    if (document.visibilityState === 'hidden') {
+    if (!this.isSafari && document.visibilityState === 'hidden') {
       this.videoCache.forEach((objectUrl) => {
         URL.revokeObjectURL(objectUrl);
       });
