@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 
 import { isAboveMinViewport } from '../../utils/viewport';
+import { initializeVideo } from '../video/videoLoader';
 
 export function initializeHoverEffects() {
   if (!isAboveMinViewport()) return;
@@ -18,6 +19,9 @@ export function initializeHoverEffects() {
 
     if (!triggerElement || !targetElement) return;
 
+    // Initialize videos in the target element
+    initializeVideo(targetElement);
+
     const showTimeline = gsap
       .timeline({ paused: true })
       .set(targetElement, { display: 'flex' })
@@ -33,11 +37,32 @@ export function initializeHoverEffects() {
     triggerElement.addEventListener('mouseenter', () => {
       hideTimeline.kill();
       showTimeline.restart();
+
+      // Play videos when showing
+      const videos = targetElement.querySelectorAll('video');
+      videos.forEach((video) => {
+        try {
+          video.play().catch((error) => console.warn('Video play failed:', error));
+        } catch (error) {
+          console.warn('Video play error:', error);
+        }
+      });
     });
 
     triggerElement.addEventListener('mouseleave', () => {
       showTimeline.kill();
       hideTimeline.restart();
+
+      // Pause videos when hiding
+      const videos = targetElement.querySelectorAll('video');
+      videos.forEach((video) => {
+        try {
+          video.pause();
+          video.currentTime = 0;
+        } catch (error) {
+          console.warn('Video pause error:', error);
+        }
+      });
     });
   });
 }

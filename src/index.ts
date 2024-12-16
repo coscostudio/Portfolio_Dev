@@ -63,6 +63,17 @@ barba.hooks.before(() => {
   return () => barba.hooks.afterLeave(() => {});
 });
 
+barba.hooks.leave((data) => {
+  // Check if we're leaving a project-related namespace to a non-project one
+  const projectNamespaces = ['projects', 'digital', 'graphic', 'direction', 'imaging'];
+  const isLeavingProject = projectNamespaces.includes(data.current.namespace);
+  const isEnteringNonProject = !projectNamespaces.includes(data.next.namespace);
+
+  if (isLeavingProject && isEnteringNonProject) {
+    animateBackgroundToActiveLink(data.next.container);
+  }
+});
+
 barba.hooks.enter((data) => {
   const preloader = document.querySelector('.preload-container');
   if (preloader) {

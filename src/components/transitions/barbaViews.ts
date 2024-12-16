@@ -35,14 +35,26 @@ const archiveLightboxModifier = () => {
 export const barbaViews = [
   {
     namespace: 'info',
-    beforeEnter({ next }: { next: { container: Element } }) {
+    beforeEnter({ next }) {
+      // Explicitly clear projects link state
+      const projectsLink = document.querySelector('[data-page="projects"]');
+      if (projectsLink) {
+        projectsLink.classList.remove('w--current');
+        projectsLink.style.color = 'var(--text-dark)';
+      }
       animateBackgroundToActiveLink();
       initializeHoverEffects();
     },
   },
   {
     namespace: 'archive',
-    beforeEnter({ next }: { next: { container: Element } }) {
+    beforeEnter({ next }) {
+      // Explicitly clear projects link state
+      const projectsLink = document.querySelector('[data-page="projects"]');
+      if (projectsLink) {
+        projectsLink.classList.remove('w--current');
+        projectsLink.style.color = 'var(--text-dark)';
+      }
       animateBackgroundToActiveLink();
       archiveLightboxModifier();
     },

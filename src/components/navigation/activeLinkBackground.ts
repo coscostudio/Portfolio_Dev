@@ -28,7 +28,7 @@ export function createActiveLinkBackground() {
   return activeLinkBackground;
 }
 
-export function animateBackgroundToActiveLink() {
+export function animateBackgroundToActiveLink(container?: Element) {
   const background = createActiveLinkBackground();
   if (!background) return;
 
@@ -39,7 +39,12 @@ export function animateBackgroundToActiveLink() {
   const oldActiveLink = document.querySelector('.nav-button.w--current');
 
   let activeLink;
-  if (window.location.pathname.startsWith('/projects')) {
+  if (
+    window.location.pathname.startsWith('/projects') ||
+    ['digital', 'graphic', 'direction', 'imaging'].some((path) =>
+      window.location.pathname.includes(path)
+    )
+  ) {
     activeLink = projectsLink;
   } else if (window.location.pathname === '/info' || window.location.pathname === '/') {
     activeLink = infoLink;

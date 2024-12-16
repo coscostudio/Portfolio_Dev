@@ -50,7 +50,7 @@ export const fadeTransition = {
     if (!data?.current?.container) return;
     return gsap.to(data.current.container, {
       opacity: 0,
-      duration: 1.5,
+      duration: 0.75,
       ease: 'expo.inOut',
     });
   },
@@ -59,7 +59,7 @@ export const fadeTransition = {
     gsap.set(data.next.container, { opacity: 0 });
     return gsap.to(data.next.container, {
       opacity: 1,
-      duration: 1.5,
+      duration: 0.75,
       ease: 'expo.inOut',
     });
   },

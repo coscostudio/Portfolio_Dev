@@ -9,14 +9,16 @@ const projectNamespaces: ProjectNamespace[] = [
   'imaging',
 ];
 const hideNamespaces = ['archive', 'info'];
-
-const TRANSITION_DURATION = 1.5;
+const TRANSITION_DURATION = 0.75;
 const TRANSITION_EASE = 'expo.inOut';
 
 function setNavStyles(nav: HTMLElement) {
-  nav.style.display = 'flex';
-  nav.style.gap = '0.5rem';
-  nav.style.flexDirection = 'row';
+  const styles = {
+    display: 'flex',
+    gap: '0.5rem',
+    flexDirection: 'row',
+  };
+  Object.assign(nav.style, styles);
 }
 
 function handleProjectsNavigation(data: {
@@ -41,12 +43,32 @@ function handleProjectsNavigation(data: {
 
   if (isEnteringProject) {
     setNavStyles(nav);
-    gsap.set(nav, { display: 'flex', opacity: 0 });
-    gsap.to(nav, {
-      opacity: 1,
-      duration: TRANSITION_DURATION,
-      ease: TRANSITION_EASE,
-    });
+
+    if (data.current.namespace !== data.next.namespace) {
+      // Get all navigation links
+      const links = nav.querySelectorAll('a');
+
+      // Animate all links to inactive state first
+      links.forEach((link) => {
+        link.classList.remove('w--current');
+      });
+
+      // Then set and animate the new active link
+      const nextLink = nav.querySelector(`[href*="${data.next.namespace}"]`);
+      if (nextLink) {
+        nextLink.classList.add('w--current');
+      }
+    }
+
+    // If entering from non-project page
+    if (!projectNamespaces.includes(data.current.namespace as ProjectNamespace)) {
+      gsap.set(nav, { display: 'flex', opacity: 0 });
+      gsap.to(nav, {
+        opacity: 1,
+        duration: TRANSITION_DURATION,
+        ease: TRANSITION_EASE,
+      });
+    }
   }
 }
 
