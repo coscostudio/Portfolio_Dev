@@ -38,7 +38,7 @@ export function slider1() {
     const instance = new Splide(slider as Element, {
       type: 'loop',
       autoWidth: true,
-      drag: 'free',
+      drag: true, // Ensure drag is enabled
       gap: '1rem',
       focus: 'left',
       arrows: false,
@@ -46,6 +46,8 @@ export function slider1() {
       dragMinThreshold: 10,
       flickMaxPages: 1,
       throttle: 100,
+      speed: 400, // Add a smooth transition speed
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)', // Add smooth easing
     });
 
     instance.on('mounted', () => {
@@ -84,7 +86,8 @@ export function slider1() {
       });
     });
 
-    instance.mount({ AutoScroll: window.splide.Extensions.AutoScroll });
+    // Mount without AutoScroll
+    instance.mount();
   });
 }
 

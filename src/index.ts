@@ -26,12 +26,6 @@ const styles = document.createElement('style');
 styles.textContent = globalStyles;
 document.head.appendChild(styles);
 
-window.splide = {
-  Extensions: {
-    AutoScroll: (window as any).splide?.Extensions?.AutoScroll,
-  },
-};
-
 // Initialize Barba
 barba.init({
   debug: true,
