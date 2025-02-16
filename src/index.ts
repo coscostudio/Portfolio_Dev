@@ -21,6 +21,14 @@ import { batchGSAPAnimations, optimizeAnimatedElements } from './utils/animation
 import { globalStyles } from './utils/styles';
 import { isAboveMinViewport } from './utils/viewport';
 
+declare global {
+  interface Window {
+    splide: {
+      Extensions?: any;
+    };
+  }
+}
+
 // Apply global styles
 const styles = document.createElement('style');
 styles.textContent = globalStyles;

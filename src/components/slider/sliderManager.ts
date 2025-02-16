@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 
 export function slider1() {
   const splides = document.querySelectorAll('.slider1');
+  if (!splides.length) return;
 
   splides.forEach((slider) => {
     const projectDiv = slider.closest('.project-div');
@@ -35,68 +36,54 @@ export function slider1() {
       });
     }
 
-    const instance = new Splide(slider as Element, {
-      type: 'loop',
-      autoWidth: true,
-      drag: true, // Ensure drag is enabled
-      gap: '1rem',
-      focus: 'left',
-      arrows: false,
-      pagination: false,
-      dragMinThreshold: 10,
-      flickMaxPages: 1,
-      throttle: 100,
-      speed: 400, // Add a smooth transition speed
-      easing: 'cubic-bezier(0.25, 1, 0.5, 1)', // Add smooth easing
-    });
-
-    instance.on('mounted', () => {
-      const videos = slider.querySelectorAll('video');
-      const images = slider.querySelectorAll('img');
-
-      videos.forEach((video) => {
-        video.muted = true;
-        video.playsInline = true;
-        video.loop = true;
+    try {
+      const instance = new Splide(slider as Element, {
+        type: 'loop',
+        autoWidth: true,
+        drag: true,
+        gap: '1rem',
+        focus: 'left',
+        arrows: false,
+        pagination: false,
+        dragMinThreshold: 10,
+        flickMaxPages: 1,
+        throttle: 100,
+        speed: 400,
+        easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
       });
 
-      const videoPromises = Array.from(videos).map((video) => {
-        try {
-          return video.play().catch(() => undefined);
-        } catch {
-          return Promise.resolve();
-        }
+      instance.on('mounted', () => {
+        // Fade out placeholders after a short delay
+        setTimeout(() => {
+          const placeholders = slider.querySelectorAll('.slide-placeholder');
+          gsap.to(placeholders, {
+            opacity: 0,
+            duration: 0.5,
+            ease: 'expo.inOut',
+            onComplete: () => {
+              placeholders.forEach((p) => p.remove());
+            },
+          });
+        }, 500);
       });
 
-      const imagePromises = Array.from(images).map((img) =>
-        img.complete ? Promise.resolve() : new Promise((resolve) => (img.onload = resolve))
-      );
-
-      Promise.allSettled([...videoPromises, ...imagePromises]).then(() => {
-        // Fade out placeholders
-        const placeholders = slider.querySelectorAll('.slide-placeholder');
-        gsap.to(placeholders, {
-          opacity: 0,
-          duration: 0.5,
-          ease: 'expo.inOut',
-          onComplete: () => {
-            placeholders.forEach((p) => p.remove());
-          },
-        });
-      });
-    });
-
-    // Mount without AutoScroll
-    instance.mount();
+      instance.mount();
+    } catch (error) {
+      console.warn('Error initializing Splide:', error);
+    }
   });
 }
 
 export function destroySplide() {
   const splides = document.querySelectorAll('.splide');
   splides.forEach((slider) => {
-    const splideInstance = (slider as any).splide;
-    if (splideInstance) {
-      splideInstance.destroy();
+    try {
+      const splideInstance = (slider as any).splide;
+      if (splideInstance) {
+        splideInstance.destroy(true); // true = completely remove
+      }
+    } catch (error) {
+      console.warn('Error destroying Splide:', error);
     }
   });
 }
