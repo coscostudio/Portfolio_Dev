@@ -43,12 +43,6 @@ export function slider1() {
       focus: 'left',
       arrows: false,
       pagination: false,
-      autoScroll: {
-        autoStart: true,
-        speed: 0.4,
-        pauseOnHover: false,
-        rewind: false,
-      },
       dragMinThreshold: 10,
       flickMaxPages: 1,
       throttle: 100,
